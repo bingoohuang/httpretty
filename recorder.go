@@ -27,27 +27,30 @@ func newBodyReaderBuf(buf io.Reader, body io.ReadCloser) *bodyCloser {
 }
 
 type responseRecorder struct {
-	http.ResponseWriter
+	header          http.Header
 	statusCode      int
 	maxReadableBody int64
 	size            int64
 	buf             *bytes.Buffer
 }
 
+func (rr *responseRecorder) Header() http.Header {
+	return rr.header
+}
+
 // Write the data to the connection as part of an HTTP reply, and records it.
-func (rr *responseRecorder) Write(p []byte) (int, error) {
+
+func (rr *responseRecorder) Write(p []byte) {
 	rr.size += int64(len(p))
 	if rr.maxReadableBody > 0 && rr.size > rr.maxReadableBody {
 		rr.buf = nil
-		return rr.ResponseWriter.Write(p)
+		return
 	}
 	defer rr.buf.Write(p)
-	return rr.ResponseWriter.Write(p)
 }
 
 // WriteHeader sends an HTTP response header with the provided
 // status code, and records it.
 func (rr *responseRecorder) WriteHeader(statusCode int) {
-	rr.ResponseWriter.WriteHeader(statusCode)
 	rr.statusCode = statusCode
 }

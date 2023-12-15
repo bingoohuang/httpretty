@@ -68,6 +68,7 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/bingoohuang/httpretty/httpsnoop"
 	"github.com/bingoohuang/httpretty/internal/color"
 )
 
@@ -355,13 +356,30 @@ func (h httpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	p.printRequest(req)
 	rec := &responseRecorder{
-		ResponseWriter:  w,
+		header:          w.Header(),
 		statusCode:      http.StatusOK,
 		maxReadableBody: l.MaxResponseBody,
 		buf:             &bytes.Buffer{},
 	}
+
+	hooks := httpsnoop.Hooks{
+		WriteHeader: func(next httpsnoop.WriteHeaderFunc) httpsnoop.WriteHeaderFunc {
+			return func(code int) {
+				next(code)
+				rec.WriteHeader(code)
+			}
+		},
+		Write: func(next httpsnoop.WriteFunc) httpsnoop.WriteFunc {
+			return func(p []byte) (int, error) {
+				n, err := next(p)
+				rec.Write(p)
+				return n, err
+			}
+		},
+	}
 	defer p.printServerResponse(req, rec)
-	h.next.ServeHTTP(rec, req)
+	hw := httpsnoop.Wrap(w, hooks)
+	h.next.ServeHTTP(hw, req)
 }
 
 // PrintRequest prints a request, even when WithHide is used to hide it.
