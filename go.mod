@@ -1,4 +1,4 @@
-module github.com/henvic/httpretty
+module github.com/bingoohuang/httpretty
 
 go 1.20
 

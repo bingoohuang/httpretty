@@ -13,7 +13,7 @@
 //		"net/http"
 //		"os"
 //
-//		"github.com/henvic/httpretty"
+//		"github.com/bingoohuang/httpretty"
 //	)
 //
 //	func main() {
@@ -68,7 +68,7 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/henvic/httpretty/internal/color"
+	"github.com/bingoohuang/httpretty/internal/color"
 )
 
 // Formatter can be used to format body.

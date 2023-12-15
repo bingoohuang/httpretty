@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/henvic/httpretty"
+	"github.com/bingoohuang/httpretty"
 )
 
 func main() {

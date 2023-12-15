@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/henvic/httpretty/internal/color"
-	"github.com/henvic/httpretty/internal/header"
+	"github.com/bingoohuang/httpretty/internal/color"
+	"github.com/bingoohuang/httpretty/internal/header"
 )
 
 func newPrinter(l *Logger) printer {
