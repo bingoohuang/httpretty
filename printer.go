@@ -102,14 +102,14 @@ func (p *printer) printf(format string, a ...interface{}) {
 	w := p.logger.getWriter()
 	if p.flusher == NoBuffer {
 		if p.printReqID {
-			fmt.Fprintf(w, format, append([]interface{}{p.id}, a...))
+			fmt.Fprintf(w, "%s "+format, append([]interface{}{p.id}, a...))
 		} else {
 			fmt.Fprintf(w, format, a...)
 		}
 		return
 	}
 	if p.printReqID {
-		fmt.Fprintf(&p.buf, format, append([]interface{}{p.id}, a...))
+		fmt.Fprintf(&p.buf, "%s "+format, append([]interface{}{p.id}, a...))
 	} else {
 		fmt.Fprintf(&p.buf, format, a...)
 	}
