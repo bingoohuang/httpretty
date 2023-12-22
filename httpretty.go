@@ -88,6 +88,27 @@ func WithHide(ctx context.Context) context.Context {
 
 // Logger provides a way for you to print client and server-side information about your HTTP traffic.
 type Logger struct {
+	w          io.Writer
+	filter     Filter
+	skipHeader map[string]struct{}
+	bodyFilter BodyFilter
+
+	// Formatters for the request and response bodies.
+	// No standard formatters are used. You need to add what you want to use explicitly.
+	// We provide a JSONFormatter for convenience (add it manually).
+	Formatters []Formatter
+
+	// MaxRequestBody the logger can print.
+	// If value is not set and Content-Length is not sent, 4096 bytes is considered.
+	MaxRequestBody int64
+
+	// MaxResponseBody the logger can print.
+	// If value is not set and Content-Length is not sent, 4096 bytes is considered.
+	MaxResponseBody int64
+
+	flusher Flusher
+
+	mu sync.Mutex // ensures atomic writes; protects the following fields
 	// SkipRequestInfo avoids printing a line showing the request URI on all requests plus a line
 	// containing the remote address on server-side requests.
 	SkipRequestInfo bool
@@ -117,26 +138,6 @@ type Logger struct {
 
 	// Colors set ANSI escape codes that terminals use to print text in different colors.
 	Colors bool
-
-	// Formatters for the request and response bodies.
-	// No standard formatters are used. You need to add what you want to use explicitly.
-	// We provide a JSONFormatter for convenience (add it manually).
-	Formatters []Formatter
-
-	// MaxRequestBody the logger can print.
-	// If value is not set and Content-Length is not sent, 4096 bytes is considered.
-	MaxRequestBody int64
-
-	// MaxResponseBody the logger can print.
-	// If value is not set and Content-Length is not sent, 4096 bytes is considered.
-	MaxResponseBody int64
-
-	mu         sync.Mutex // ensures atomic writes; protects the following fields
-	w          io.Writer
-	filter     Filter
-	skipHeader map[string]struct{}
-	bodyFilter BodyFilter
-	flusher    Flusher
 }
 
 // Filter allows you to skip requests.
@@ -250,15 +251,17 @@ func (l *Logger) cloneSkipHeader() map[string]struct{} {
 type contextHide struct{}
 
 type roundTripper struct {
-	logger *Logger
-	rt     http.RoundTripper
+	logger     *Logger
+	rt         http.RoundTripper
+	printReqID bool
 }
 
 // RoundTripper returns a RoundTripper that uses the logger.
-func (l *Logger) RoundTripper(rt http.RoundTripper) http.RoundTripper {
+func (l *Logger) RoundTripper(rt http.RoundTripper, printReqID bool) http.RoundTripper {
 	return roundTripper{
-		logger: l,
-		rt:     rt,
+		logger:     l,
+		rt:         rt,
+		printReqID: printReqID,
 	}
 }
 
@@ -272,7 +275,7 @@ func (r roundTripper) RoundTrip(req *http.Request) (resp *http.Response, err err
 		tripper = http.RoundTripper(http.DefaultTransport)
 	}
 	l := r.logger
-	p := newPrinter(l)
+	p := newPrinter(l, r.printReqID)
 	defer p.flush()
 	if hide := req.Context().Value(contextHide{}); hide != nil || p.checkFilter(req) {
 		return tripper.RoundTrip(req)
@@ -323,22 +326,24 @@ func (r roundTripper) RoundTrip(req *http.Request) (resp *http.Response, err err
 }
 
 // Middleware for logging incoming requests to a HTTP server.
-func (l *Logger) Middleware(next http.Handler) http.Handler {
+func (l *Logger) Middleware(next http.Handler, printReqID bool) http.Handler {
 	return httpHandler{
-		logger: l,
-		next:   next,
+		logger:     l,
+		next:       next,
+		printReqID: printReqID,
 	}
 }
 
 type httpHandler struct {
-	logger *Logger
-	next   http.Handler
+	logger     *Logger
+	next       http.Handler
+	printReqID bool
 }
 
 // ServeHTTP is a middleware for logging incoming requests to a HTTP server.
 func (h httpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	l := h.logger
-	p := newPrinter(l)
+	p := newPrinter(l, h.printReqID)
 	defer p.flush()
 	if hide := req.Context().Value(contextHide{}); hide != nil || p.checkFilter(req) {
 		h.next.ServeHTTP(w, req)
@@ -386,7 +391,7 @@ func (h httpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 //
 // It doesn't log TLS connection details or request duration.
 func (l *Logger) PrintRequest(req *http.Request) {
-	var p = printer{logger: l}
+	p := printer{logger: l}
 	if skip := p.checkFilter(req); skip {
 		return
 	}
@@ -395,7 +400,7 @@ func (l *Logger) PrintRequest(req *http.Request) {
 
 // PrintResponse prints a response.
 func (l *Logger) PrintResponse(resp *http.Response) {
-	var p = printer{logger: l}
+	p := printer{logger: l}
 	p.printResponse(resp)
 }
 

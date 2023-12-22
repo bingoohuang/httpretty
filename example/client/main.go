@@ -20,7 +20,7 @@ func main() {
 		Formatters:     []httpretty.Formatter{&httpretty.JSONFormatter{}},
 	}
 	// Set the default HTTP client to use the logger RoundTripper.
-	http.DefaultClient.Transport = logger.RoundTripper(http.DefaultTransport)
+	http.DefaultClient.Transport = logger.RoundTripper(http.DefaultTransport, false)
 
 	// Example of request.
 	if _, err := http.Get("https://www.google.com/"); err != nil {

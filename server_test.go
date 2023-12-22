@@ -56,7 +56,7 @@ func TestIncoming(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(helloHandler{}), 1)
+	is := inspect(logger.Middleware(helloHandler{}, false), 1)
 	ts := httptest.NewServer(is)
 	defer ts.Close()
 
@@ -89,7 +89,7 @@ func TestIncomingNotFound(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(http.NotFoundHandler()), 1)
+	is := inspect(logger.Middleware(http.NotFoundHandler(), false), 1)
 	ts := httptest.NewServer(is)
 	defer ts.Close()
 
@@ -138,7 +138,7 @@ func TestIncomingConcurrency(t *testing.T) {
 	logger.SetFlusher(OnEnd)
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	ts := httptest.NewServer(logger.Middleware(helloHandler{}))
+	ts := httptest.NewServer(logger.Middleware(helloHandler{}, false))
 	defer ts.Close()
 
 	concurrency := 100
@@ -176,7 +176,7 @@ func TestIncomingMinimal(t *testing.T) {
 	logger := &Logger{}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(helloHandler{}), 1)
+	is := inspect(logger.Middleware(helloHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -213,7 +213,7 @@ func TestIncomingSanitized(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(helloHandler{}), 1)
+	is := inspect(logger.Middleware(helloHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -261,7 +261,7 @@ func TestIncomingHide(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	is := inspect(hideHandler{
-		next: logger.Middleware(helloHandler{}),
+		next: logger.Middleware(helloHandler{}, false),
 	}, 1)
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -293,7 +293,7 @@ func TestIncomingFilter(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	logger.SetFilter(filteredURIs)
-	ts := httptest.NewServer(logger.Middleware(helloHandler{}))
+	ts := httptest.NewServer(logger.Middleware(helloHandler{}, false))
 	defer ts.Close()
 	testCases := []struct {
 		uri  string
@@ -335,7 +335,7 @@ func TestIncomingFilterPanicked(t *testing.T) {
 	logger.SetFilter(func(req *http.Request) (bool, error) {
 		panic("evil panic")
 	})
-	is := inspect(logger.Middleware(helloHandler{}), 1)
+	is := inspect(logger.Middleware(helloHandler{}, false), 1)
 	ts := httptest.NewServer(is)
 	defer ts.Close()
 	client := newServerClient()
@@ -363,7 +363,7 @@ func TestIncomingSkipHeader(t *testing.T) {
 		"user-agent",
 		"content-type",
 	})
-	is := inspect(logger.Middleware(jsonHandler{}), 1)
+	is := inspect(logger.Middleware(jsonHandler{}, false), 1)
 	ts := httptest.NewServer(is)
 	defer ts.Close()
 	client := newServerClient()
@@ -399,7 +399,7 @@ func TestIncomingBodyFilter(t *testing.T) {
 		mediatype, _, _ := mime.ParseMediaType(h.Get("Content-Type"))
 		return mediatype == "application/json", nil
 	})
-	is := inspect(logger.Middleware(jsonHandler{}), 1)
+	is := inspect(logger.Middleware(jsonHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -436,7 +436,7 @@ func TestIncomingBodyFilterSoftError(t *testing.T) {
 		// filter anyway, but print soft error saying something went wrong during the filtering.
 		return true, errors.New("incomplete implementation")
 	})
-	is := inspect(logger.Middleware(jsonHandler{}), 1)
+	is := inspect(logger.Middleware(jsonHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -472,7 +472,7 @@ func TestIncomingBodyFilterPanicked(t *testing.T) {
 	logger.SetBodyFilter(func(h http.Header) (skip bool, err error) {
 		panic("evil panic")
 	})
-	is := inspect(logger.Middleware(jsonHandler{}), 1)
+	is := inspect(logger.Middleware(jsonHandler{}, false), 1)
 	ts := httptest.NewServer(is)
 	defer ts.Close()
 
@@ -507,7 +507,7 @@ func TestIncomingWithTimeRequest(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 
-	is := inspect(logger.Middleware(helloHandler{}), 1)
+	is := inspect(logger.Middleware(helloHandler{}, false), 1)
 	ts := httptest.NewServer(is)
 	defer ts.Close()
 	go func() {
@@ -546,7 +546,7 @@ func TestIncomingFormattedJSON(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(jsonHandler{}), 1)
+	is := inspect(logger.Middleware(jsonHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -582,7 +582,7 @@ func TestIncomingBadJSON(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(badJSONHandler{}), 1)
+	is := inspect(logger.Middleware(badJSONHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -618,7 +618,7 @@ func TestIncomingFormatterPanicked(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(badJSONHandler{}), 1)
+	is := inspect(logger.Middleware(badJSONHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -654,7 +654,7 @@ func TestIncomingFormatterMatcherPanicked(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(badJSONHandler{}), 1)
+	is := inspect(logger.Middleware(badJSONHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -691,7 +691,7 @@ func TestIncomingForm(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(formHandler{}), 1)
+	is := inspect(logger.Middleware(formHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -729,7 +729,7 @@ func TestIncomingBinaryBody(t *testing.T) {
 	is := inspect(logger.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header()["Date"] = nil
 		fmt.Fprint(w, "\x25\x50\x44\x46\x2d\x31\x2e\x33\x0a\x25\xc4\xe5\xf2\xe5\xeb\xa7")
-	})), 1)
+	}), false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -767,7 +767,7 @@ func TestIncomingBinaryBodyNoMediatypeHeader(t *testing.T) {
 		w.Header()["Date"] = nil
 		w.Header()["Content-Type"] = nil
 		fmt.Fprint(w, "\x25\x50\x44\x46\x2d\x31\x2e\x33\x0a\x25\xc4\xe5\xf2\xe5\xeb\xa7")
-	})), 1)
+	}), false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -800,7 +800,7 @@ func TestIncomingLongRequest(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(longRequestHandler{}), 1)
+	is := inspect(logger.Middleware(longRequestHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -833,7 +833,7 @@ func TestIncomingLongResponse(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(longResponseHandler{}), 1)
+	is := inspect(logger.Middleware(longResponseHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -868,7 +868,7 @@ func TestIncomingLongResponseHead(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(longResponseHandler{}), 1)
+	is := inspect(logger.Middleware(longResponseHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -901,7 +901,7 @@ func TestIncomingTooLongResponse(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(longResponseHandler{}), 1)
+	is := inspect(logger.Middleware(longResponseHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -938,7 +938,7 @@ func TestIncomingLongResponseUnknownLength(t *testing.T) {
 	logger.SetOutput(&buf)
 
 	repeat := 100
-	is := inspect(logger.Middleware(longResponseUnknownLengthHandler{repeat: repeat}), 1)
+	is := inspect(logger.Middleware(longResponseUnknownLengthHandler{repeat: repeat}, false), 1)
 	ts := httptest.NewServer(is)
 	defer ts.Close()
 	uri := fmt.Sprintf("%s/long-response", ts.URL)
@@ -973,7 +973,7 @@ func TestIncomingLongResponseUnknownLengthTooLong(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(longResponseUnknownLengthHandler{}), 1)
+	is := inspect(logger.Middleware(longResponseUnknownLengthHandler{}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -1010,7 +1010,7 @@ func TestIncomingMultipartForm(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(multipartHandler{t}), 1)
+	is := inspect(logger.Middleware(multipartHandler{t}, false), 1)
 
 	ts := httptest.NewServer(is)
 	defer ts.Close()
@@ -1047,7 +1047,7 @@ func TestIncomingTLS(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(helloHandler{}), 1)
+	is := inspect(logger.Middleware(helloHandler{}, false), 1)
 
 	ts := httptest.NewTLSServer(is)
 	defer ts.Close()
@@ -1098,7 +1098,7 @@ func TestIncomingMutualTLS(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(helloHandler{}), 1)
+	is := inspect(logger.Middleware(helloHandler{}, false), 1)
 
 	// NOTE(henvic): Using httptest directly turned out complicated.
 	// See https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go
@@ -1198,7 +1198,7 @@ func TestIncomingMutualTLSNoSafetyLogging(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	is := inspect(logger.Middleware(helloHandler{}), 1)
+	is := inspect(logger.Middleware(helloHandler{}, false), 1)
 
 	// NOTE(henvic): Using httptest directly turned out complicated.
 	// See https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go

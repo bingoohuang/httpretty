@@ -26,7 +26,7 @@ var petition string
 
 func TestPrintRequest(t *testing.T) {
 	t.Parallel()
-	var req, err = http.NewRequest(http.MethodPost, "http://wxww.example.com/", nil)
+	req, err := http.NewRequest(http.MethodPost, "http://wxww.example.com/", nil)
 	if err != nil {
 		panic(err)
 	}
@@ -53,7 +53,7 @@ func TestPrintRequest(t *testing.T) {
 
 func TestPrintRequestWithColors(t *testing.T) {
 	t.Parallel()
-	var req, err = http.NewRequest(http.MethodPost, "http://wxww.example.com/", nil)
+	req, err := http.NewRequest(http.MethodPost, "http://wxww.example.com/", nil)
 	if err != nil {
 		panic(err)
 	}
@@ -92,7 +92,7 @@ func TestEncodingQueryStringParams(t *testing.T) {
 		Path:     "/mypath",
 		RawQuery: qs.Encode(),
 	}
-	var req, err = http.NewRequest(http.MethodPost, u.String(), nil)
+	req, err := http.NewRequest(http.MethodPost, u.String(), nil)
 	if err != nil {
 		panic(err)
 	}
@@ -129,7 +129,7 @@ func TestEncodingQueryStringParamsNoColors(t *testing.T) {
 		Path:     "/mypath",
 		RawQuery: qs.Encode(),
 	}
-	var req, err = http.NewRequest(http.MethodPost, u.String(), nil)
+	req, err := http.NewRequest(http.MethodPost, u.String(), nil)
 	if err != nil {
 		panic(err)
 	}
@@ -155,7 +155,7 @@ func TestEncodingQueryStringParamsNoColors(t *testing.T) {
 
 func TestPrintRequestFiltered(t *testing.T) {
 	t.Parallel()
-	var req, err = http.NewRequest(http.MethodPost, "http://wxww.example.com/", nil)
+	req, err := http.NewRequest(http.MethodPost, "http://wxww.example.com/", nil)
 	if err != nil {
 		panic(err)
 	}

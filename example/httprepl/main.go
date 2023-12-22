@@ -26,7 +26,7 @@ func main() {
 
 	// Using a custom HTTP client using the logger RoundTripper, rather than http.DefaultClient.
 	client := &http.Client{
-		Transport: logger.RoundTripper(http.DefaultTransport),
+		Transport: logger.RoundTripper(http.DefaultTransport, false),
 	}
 
 	fmt.Print("httprepl is a small HTTP client REPL (read-eval-print-loop) program example\n\n")

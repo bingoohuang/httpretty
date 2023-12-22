@@ -10,7 +10,7 @@ import (
 // Sanitize list of headers.
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ can be consulted for header syntax.
 func Sanitize(sanitizers map[string]SanitizeHeaderFunc, headers http.Header) http.Header {
-	var redacted = http.Header{}
+	redacted := http.Header{}
 
 	for k, values := range headers {
 		if s, ok := sanitizers[http.CanonicalHeaderKey(k)]; ok {
@@ -25,7 +25,7 @@ func Sanitize(sanitizers map[string]SanitizeHeaderFunc, headers http.Header) htt
 }
 
 func sanitize(s SanitizeHeaderFunc, values []string) []string {
-	var redacted = []string{}
+	redacted := []string{}
 
 	for _, v := range values {
 		redacted = append(redacted, s(v))

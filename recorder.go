@@ -28,10 +28,10 @@ func newBodyReaderBuf(buf io.Reader, body io.ReadCloser) *bodyCloser {
 
 type responseRecorder struct {
 	header          http.Header
+	buf             *bytes.Buffer
 	statusCode      int
 	maxReadableBody int64
 	size            int64
-	buf             *bytes.Buffer
 }
 
 func (rr *responseRecorder) Header() http.Header {

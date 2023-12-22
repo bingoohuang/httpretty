@@ -64,7 +64,7 @@ func TestOutgoing(t *testing.T) {
 	client := &http.Client{
 		// Only use the default transport (http.DefaultTransport) on TestOutgoing.
 		// Passing nil here = http.DefaultTransport.
-		Transport: logger.RoundTripper(nil),
+		Transport: logger.RoundTripper(nil, false),
 	}
 	// code for capturing stdout was copied from the Go source code file src/testing/run_example.go:
 	// https://github.com/golang/go/blob/ac56baa/src/testing/run_example.go
@@ -143,7 +143,7 @@ func TestOutgoingConcurrency(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	var wg sync.WaitGroup
@@ -173,7 +173,7 @@ func TestOutgoingMinimal(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
@@ -207,7 +207,7 @@ func TestOutgoingSanitized(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
@@ -243,7 +243,7 @@ func TestOutgoingSkipSanitize(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
@@ -278,7 +278,7 @@ func TestOutgoingHide(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
@@ -323,7 +323,7 @@ func TestOutgoingFilter(t *testing.T) {
 	logger.SetOutput(io.Discard)
 	logger.SetFilter(filteredURIs)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	testCases := []struct {
@@ -367,7 +367,7 @@ func TestOutgoingFilterPanicked(t *testing.T) {
 		panic("evil panic")
 	})
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	var buf bytes.Buffer
@@ -399,7 +399,7 @@ func TestOutgoingSkipHeader(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	uri := fmt.Sprintf("%s/json", ts.URL)
@@ -435,7 +435,7 @@ func TestOutgoingBodyFilter(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	uri := fmt.Sprintf("%s/json", ts.URL)
@@ -471,7 +471,7 @@ func TestOutgoingBodyFilterSoftError(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	uri := fmt.Sprintf("%s/json", ts.URL)
@@ -506,7 +506,7 @@ func TestOutgoingBodyFilterPanicked(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	uri := fmt.Sprintf("%s/json", ts.URL)
@@ -540,7 +540,7 @@ func TestOutgoingWithTimeRequest(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
@@ -601,7 +601,7 @@ func TestOutgoingFormattedJSON(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	testCases := []struct {
@@ -662,7 +662,7 @@ func TestOutgoingBadJSON(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	uri := fmt.Sprintf("%s/json", ts.URL)
@@ -707,7 +707,7 @@ func TestOutgoingFormatterPanicked(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	uri := fmt.Sprintf("%s/json", ts.URL)
@@ -752,7 +752,7 @@ func TestOutgoingFormatterMatcherPanicked(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	uri := fmt.Sprintf("%s/json", ts.URL)
@@ -794,7 +794,7 @@ func TestOutgoingForm(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	form := url.Values{}
@@ -831,7 +831,7 @@ func TestOutgoingBinaryBody(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	b := []byte("RIFF\x00\x00\x00\x00WEBPVP")
@@ -868,7 +868,7 @@ func TestOutgoingBinaryBodyNoMediatypeHeader(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	b := []byte("RIFF\x00\x00\x00\x00WEBPVP")
@@ -911,7 +911,7 @@ func TestOutgoingLongRequest(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	uri := fmt.Sprintf("%s/long-request", ts.URL)
@@ -954,7 +954,7 @@ func TestOutgoingLongResponse(t *testing.T) {
 	logger.SetOutput(&buf)
 
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 	uri := fmt.Sprintf("%s/long-response", ts.URL)
 	req, err := http.NewRequest(http.MethodGet, uri, nil)
@@ -987,7 +987,7 @@ func TestOutgoingLongResponseHead(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	uri := fmt.Sprintf("%s/long-response", ts.URL)
@@ -1021,7 +1021,7 @@ func TestOutgoingTooLongResponse(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	uri := fmt.Sprintf("%s/long-response", ts.URL)
@@ -1075,7 +1075,7 @@ func TestOutgoingLongResponseUnknownLength(t *testing.T) {
 			var buf bytes.Buffer
 			logger.SetOutput(&buf)
 			client := &http.Client{
-				Transport: logger.RoundTripper(newTransport()),
+				Transport: logger.RoundTripper(newTransport(), false),
 			}
 
 			uri := fmt.Sprintf("%s/long-response", ts.URL)
@@ -1125,7 +1125,7 @@ func TestOutgoingLongResponseUnknownLengthTooLong(t *testing.T) {
 			var buf bytes.Buffer
 			logger.SetOutput(&buf)
 			client := &http.Client{
-				Transport: logger.RoundTripper(newTransport()),
+				Transport: logger.RoundTripper(newTransport(), false),
 			}
 
 			uri := fmt.Sprintf("%s/long-response", ts.URL)
@@ -1229,7 +1229,7 @@ func TestOutgoingMultipartForm(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	uri := fmt.Sprintf("%s/multipart-upload", ts.URL)
@@ -1278,10 +1278,9 @@ func TestOutgoingProxy(t *testing.T) {
 	proxyURL, err := url.Parse(proxyServer.URL)
 	if err != nil {
 		t.Errorf("cannot parse proxy URL: %v", err)
-
 	}
 	transport.Proxy = http.ProxyURL(proxyURL)
-	client.Transport = logger.RoundTripper(transport)
+	client.Transport = logger.RoundTripper(transport, false)
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
@@ -1316,7 +1315,7 @@ func TestOutgoingTLS(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := ts.Client()
-	client.Transport = logger.RoundTripper(client.Transport)
+	client.Transport = logger.RoundTripper(client.Transport, false)
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
@@ -1353,7 +1352,7 @@ func TestOutgoingTLSInsecureSkipVerify(t *testing.T) {
 	client := ts.Client()
 	transport := client.Transport.(*http.Transport)
 	transport.TLSClientConfig.InsecureSkipVerify = true
-	client.Transport = logger.RoundTripper(transport)
+	client.Transport = logger.RoundTripper(transport, false)
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
@@ -1389,7 +1388,7 @@ func TestOutgoingTLSInvalidCertificate(t *testing.T) {
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
 	client := &http.Client{
-		Transport: logger.RoundTripper(newTransport()),
+		Transport: logger.RoundTripper(newTransport(), false),
 	}
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
@@ -1439,7 +1438,7 @@ func TestOutgoingTLSBadClientCertificate(t *testing.T) {
 	transport.TLSClientConfig.Certificates = []tls.Certificate{
 		cert,
 	}
-	client.Transport = logger.RoundTripper(transport)
+	client.Transport = logger.RoundTripper(transport, false)
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 	if err != nil {
@@ -1447,7 +1446,7 @@ func TestOutgoingTLSBadClientCertificate(t *testing.T) {
 	}
 	req.Host = "example.com" // overriding the Host header to send
 	req.Header.Add("User-Agent", "Robot/0.1 crawler@example.com")
-	var ue = &url.Error{}
+	ue := &url.Error{}
 	if _, err = client.Do(req); err == nil || !errors.As(err, &ue) {
 		t.Errorf("got: %v, expected bad certificate error message", err)
 	}
@@ -1536,13 +1535,13 @@ func TestOutgoingHTTP2MutualTLS(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	client.Transport = logger.RoundTripper(client.Transport)
+	client.Transport = logger.RoundTripper(client.Transport, false)
 	_, port, err := net.SplitHostPort(listener.Addr().String())
 	if err != nil {
 		panic(err)
 	}
 
-	var host = fmt.Sprintf("https://localhost:%s/mutual-tls-test", port)
+	host := fmt.Sprintf("https://localhost:%s/mutual-tls-test", port)
 	resp, err := client.Get(host)
 	if err != nil {
 		t.Errorf("cannot create request: %v", err)
@@ -1634,12 +1633,12 @@ func TestOutgoingHTTP2MutualTLSNoSafetyLogging(t *testing.T) {
 	}
 	var buf bytes.Buffer
 	logger.SetOutput(&buf)
-	client.Transport = logger.RoundTripper(client.Transport)
+	client.Transport = logger.RoundTripper(client.Transport, false)
 	_, port, err := net.SplitHostPort(listener.Addr().String())
 	if err != nil {
 		panic(err)
 	}
-	var host = fmt.Sprintf("https://localhost:%s/mutual-tls-test", port)
+	host := fmt.Sprintf("https://localhost:%s/mutual-tls-test", port)
 	resp, err := client.Get(host)
 	if err != nil {
 		t.Errorf("cannot create request: %v", err)

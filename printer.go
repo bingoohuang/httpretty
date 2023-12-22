@@ -17,19 +17,25 @@ import (
 	"github.com/bingoohuang/httpretty/internal/header"
 )
 
-func newPrinter(l *Logger) printer {
+func newPrinter(l *Logger, printReqID bool) printer {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	return printer{
-		logger:  l,
-		flusher: l.flusher,
+		logger:     l,
+		flusher:    l.flusher,
+		id:         "[" + Ksuid() + "]",
+		printReqID: printReqID,
 	}
 }
 
 type printer struct {
-	flusher Flusher
-	logger  *Logger
-	buf     bytes.Buffer
+	logger *Logger
+
+	id  string
+	buf bytes.Buffer
+
+	flusher    Flusher
+	printReqID bool
 }
 
 func (p *printer) maybeOnReady() {
@@ -45,6 +51,7 @@ func (p *printer) flush() {
 	p.logger.mu.Lock()
 	defer p.logger.mu.Unlock()
 	defer p.buf.Reset()
+
 	w := p.logger.getWriter()
 	fmt.Fprint(w, p.buf.String())
 }
@@ -54,10 +61,20 @@ func (p *printer) print(a ...interface{}) {
 	defer p.logger.mu.Unlock()
 	w := p.logger.getWriter()
 	if p.flusher == NoBuffer {
-		fmt.Fprint(w, a...)
+		if p.printReqID {
+			fmt.Fprint(w, append([]interface{}{p.id}, a...))
+		} else {
+			fmt.Fprint(w, a...)
+		}
+
 		return
 	}
-	fmt.Fprint(&p.buf, a...)
+
+	if p.printReqID {
+		fmt.Fprint(&p.buf, append([]interface{}{p.id}, a...))
+	} else {
+		fmt.Fprint(&p.buf, a...)
+	}
 }
 
 func (p *printer) println(a ...interface{}) {
@@ -65,10 +82,18 @@ func (p *printer) println(a ...interface{}) {
 	defer p.logger.mu.Unlock()
 	w := p.logger.getWriter()
 	if p.flusher == NoBuffer {
-		fmt.Fprintln(w, a...)
+		if p.printReqID {
+			fmt.Fprintln(w, append([]interface{}{p.id}, a...))
+		} else {
+			fmt.Fprintln(w, a...)
+		}
 		return
 	}
-	fmt.Fprintln(&p.buf, a...)
+	if p.printReqID {
+		fmt.Fprintln(&p.buf, append([]interface{}{p.id}, a...))
+	} else {
+		fmt.Fprintln(&p.buf, a...)
+	}
 }
 
 func (p *printer) printf(format string, a ...interface{}) {
@@ -76,10 +101,18 @@ func (p *printer) printf(format string, a ...interface{}) {
 	defer p.logger.mu.Unlock()
 	w := p.logger.getWriter()
 	if p.flusher == NoBuffer {
-		fmt.Fprintf(w, format, a...)
+		if p.printReqID {
+			fmt.Fprintf(w, format, append([]interface{}{p.id}, a...))
+		} else {
+			fmt.Fprintf(w, format, a...)
+		}
 		return
 	}
-	fmt.Fprintf(&p.buf, format, a...)
+	if p.printReqID {
+		fmt.Fprintf(&p.buf, format, append([]interface{}{p.id}, a...))
+	} else {
+		fmt.Fprintf(&p.buf, format, a...)
+	}
 }
 
 func (p *printer) printRequest(req *http.Request) {
