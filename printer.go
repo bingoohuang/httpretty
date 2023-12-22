@@ -62,7 +62,7 @@ func (p *printer) print(a ...interface{}) {
 	w := p.logger.getWriter()
 	if p.flusher == NoBuffer {
 		if p.printReqID {
-			fmt.Fprint(w, append([]interface{}{p.id}, a...))
+			fmt.Fprint(w, append([]interface{}{p.id}, a...)...)
 		} else {
 			fmt.Fprint(w, a...)
 		}
@@ -71,7 +71,7 @@ func (p *printer) print(a ...interface{}) {
 	}
 
 	if p.printReqID {
-		fmt.Fprint(&p.buf, append([]interface{}{p.id}, a...))
+		fmt.Fprint(&p.buf, append([]interface{}{p.id}, a...)...)
 	} else {
 		fmt.Fprint(&p.buf, a...)
 	}
@@ -83,14 +83,14 @@ func (p *printer) println(a ...interface{}) {
 	w := p.logger.getWriter()
 	if p.flusher == NoBuffer {
 		if p.printReqID {
-			fmt.Fprintln(w, append([]interface{}{p.id}, a...))
+			fmt.Fprintln(w, append([]interface{}{p.id}, a...)...)
 		} else {
 			fmt.Fprintln(w, a...)
 		}
 		return
 	}
 	if p.printReqID {
-		fmt.Fprintln(&p.buf, append([]interface{}{p.id}, a...))
+		fmt.Fprintln(&p.buf, append([]interface{}{p.id}, a...)...)
 	} else {
 		fmt.Fprintln(&p.buf, a...)
 	}
@@ -102,14 +102,14 @@ func (p *printer) printf(format string, a ...interface{}) {
 	w := p.logger.getWriter()
 	if p.flusher == NoBuffer {
 		if p.printReqID {
-			fmt.Fprintf(w, "%s "+format, append([]interface{}{p.id}, a...))
+			fmt.Fprintf(w, "%s "+format, append([]interface{}{p.id}, a...)...)
 		} else {
 			fmt.Fprintf(w, format, a...)
 		}
 		return
 	}
 	if p.printReqID {
-		fmt.Fprintf(&p.buf, "%s "+format, append([]interface{}{p.id}, a...))
+		fmt.Fprintf(&p.buf, "%s "+format, append([]interface{}{p.id}, a...)...)
 	} else {
 		fmt.Fprintf(&p.buf, format, a...)
 	}
