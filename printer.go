@@ -2,8 +2,10 @@ package httpretty
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -209,7 +211,9 @@ func (p *printer) printResponseBodyOut(resp *http.Response) {
 	if skip {
 		return
 	}
-	if contentType := resp.Header.Get("Content-Type"); contentType != "" && isBinaryMediatype(contentType) {
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType != "" && isBinaryMediatype(contentType) {
 		p.println("* body contains binary data")
 		return
 	}
@@ -217,9 +221,9 @@ func (p *printer) printResponseBodyOut(resp *http.Response) {
 		p.printf("* body is too long (%d bytes) to print, skipping (longer than %d bytes)\n", resp.ContentLength, p.logger.MaxResponseBody)
 		return
 	}
-	contentType := resp.Header.Get("Content-Type")
+	contentEncoding := resp.Header.Get("Content-Encoding")
 	if resp.ContentLength == -1 {
-		if newBody := p.printBodyUnknownLength(contentType, p.logger.MaxResponseBody, resp.Body); newBody != nil {
+		if newBody := p.printBodyUnknownLength(contentEncoding, contentType, p.logger.MaxResponseBody, resp.Body); newBody != nil {
 			resp.Body = newBody
 		}
 		return
@@ -230,7 +234,8 @@ func (p *printer) printResponseBodyOut(resp *http.Response) {
 	defer func() {
 		resp.Body = io.NopCloser(&buf)
 	}()
-	p.printBodyReader(contentType, tee)
+
+	p.printBodyReader(contentEncoding, contentType, tee)
 }
 
 // isBinary uses heuristics to guess if file is binary (actually, "printable" in the terminal).
@@ -295,7 +300,7 @@ func isBinaryMediatype(mediatype string) bool {
 
 const maxDefaultUnknownReadable = 4096 // bytes
 
-func (p *printer) printBodyUnknownLength(contentType string, maxLength int64, r io.ReadCloser) (newBody io.ReadCloser) {
+func (p *printer) printBodyUnknownLength(contentEncoding, contentType string, maxLength int64, r io.ReadCloser) (newBody io.ReadCloser) {
 	if maxLength == 0 {
 		maxLength = maxDefaultUnknownReadable
 	}
@@ -311,9 +316,9 @@ func (p *printer) printBodyUnknownLength(contentType string, maxLength int64, r 
 	case err == io.EOF && n == 0:
 	case err == nil && int64(n) > maxLength:
 		p.printf("* body is too long, skipping (contains more than %d bytes)\n", n-1)
-	case err == io.ErrUnexpectedEOF || err == nil:
+	case errors.Is(err, io.ErrUnexpectedEOF) || err == nil:
 		// cannot pass same bytes reader below because we only read it once.
-		p.printBodyReader(contentType, bytes.NewReader(pb))
+		p.printBodyReader(contentEncoding, contentType, bytes.NewReader(pb))
 	default:
 		p.printf("* cannot read body: %v (%d bytes read)\n", err, n)
 	}
@@ -427,15 +432,16 @@ func (p *printer) printCertificate(hostname string, cert *x509.Certificate) {
 }
 
 func (p *printer) printServerResponse(req *http.Request, rec *responseRecorder) {
+	h := rec.Header()
 	if p.logger.ResponseHeader {
 		// TODO(henvic): see how httptest.ResponseRecorder adds extra headers due to Content-Type detection
 		// and other stuff (Date). It would be interesting to show them here too (either as default or opt-in).
-		p.printResponseHeader(req.Proto, fmt.Sprintf("%d %s", rec.statusCode, http.StatusText(rec.statusCode)), rec.Header())
+		p.printResponseHeader(req.Proto, fmt.Sprintf("%d %s", rec.statusCode, http.StatusText(rec.statusCode)), h)
 	}
 	if !p.logger.ResponseBody || rec.size == 0 {
 		return
 	}
-	skip, err := p.checkBodyFiltered(rec.Header())
+	skip, err := p.checkBodyFiltered(h)
 	if err != nil {
 		p.printf("* %s\n", p.format(color.FgRed, "error on response body filter: ", err.Error()))
 	}
@@ -450,7 +456,7 @@ func (p *printer) printServerResponse(req *http.Request, rec *responseRecorder) 
 		p.printf("* body is too long (%d bytes) to print, skipping (longer than %d bytes)\n", rec.size, p.logger.MaxResponseBody)
 		return
 	}
-	p.printBodyReader(rec.Header().Get("Content-Type"), rec.buf)
+	p.printBodyReader(h.Get("Content-Encoding"), h.Get("Content-Type"), rec.buf)
 }
 
 func (p *printer) printResponseHeader(proto, status string, h http.Header) {
@@ -461,17 +467,27 @@ func (p *printer) printResponseHeader(proto, status string, h http.Header) {
 	p.println()
 }
 
-func (p *printer) printBodyReader(contentType string, r io.Reader) {
-	mediatype, _, _ := mime.ParseMediaType(contentType)
+func (p *printer) printBodyReader(contentEncoding, contentType string, r io.Reader) {
+	if contentEncoding == "gzip" {
+		var err error
+		if r, err = gzip.NewReader(r); err != nil {
+			p.printf("* gzip read body: %v\n", p.format(color.FgRed, err.Error()))
+			return
+		}
+	}
+
 	body, err := io.ReadAll(r)
 	if err != nil {
 		p.printf("* cannot read body: %v\n", p.format(color.FgRed, err.Error()))
 		return
 	}
+
 	if isBinary(body) {
 		p.println("* body contains binary data")
 		return
 	}
+
+	mediatype, _, _ := mime.ParseMediaType(contentType)
 	for _, f := range p.logger.Formatters {
 		if ok := p.safeBodyMatch(f, mediatype); !ok {
 			continue
@@ -587,7 +603,9 @@ func (p *printer) printRequestBody(req *http.Request) {
 	if skip {
 		return
 	}
-	if mediatype := req.Header.Get("Content-Type"); mediatype != "" && isBinaryMediatype(mediatype) {
+
+	contentType := req.Header.Get("Content-Type")
+	if contentType != "" && isBinaryMediatype(contentType) {
 		p.println("* body contains binary data")
 		return
 	}
@@ -597,7 +615,8 @@ func (p *printer) printRequestBody(req *http.Request) {
 			req.ContentLength, p.logger.MaxRequestBody)
 		return
 	}
-	contentType := req.Header.Get("Content-Type")
+
+	contentEncoding := req.Header.Get("Content-Encoding")
 	if req.ContentLength > 0 {
 		var buf bytes.Buffer
 		tee := io.TeeReader(req.Body, &buf)
@@ -605,10 +624,11 @@ func (p *printer) printRequestBody(req *http.Request) {
 		defer func() {
 			req.Body = io.NopCloser(&buf)
 		}()
-		p.printBodyReader(contentType, tee)
+		p.printBodyReader(contentEncoding, contentType, tee)
 		return
 	}
-	if newBody := p.printBodyUnknownLength(contentType, p.logger.MaxRequestBody, req.Body); newBody != nil {
+
+	if newBody := p.printBodyUnknownLength(contentEncoding, contentType, p.logger.MaxRequestBody, req.Body); newBody != nil {
 		req.Body = newBody
 	}
 }
