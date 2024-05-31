@@ -67,6 +67,7 @@ import (
 	"os"
 	"regexp"
 	"sync"
+	"time"
 
 	"github.com/bingoohuang/httpretty/httpsnoop"
 	"github.com/bingoohuang/httpretty/internal/color"
@@ -138,6 +139,8 @@ type Logger struct {
 
 	// Colors set ANSI escape codes that terminals use to print text in different colors.
 	Colors bool
+
+	QPS float64
 }
 
 // Filter allows you to skip requests.
@@ -254,6 +257,7 @@ type roundTripper struct {
 	logger     *Logger
 	rt         http.RoundTripper
 	printReqID bool
+	qpsAllow   *qpsAllow
 }
 
 // RoundTripper returns a RoundTripper that uses the logger.
@@ -262,6 +266,7 @@ func (l *Logger) RoundTripper(rt http.RoundTripper, printReqID bool) http.RoundT
 		logger:     l,
 		rt:         rt,
 		printReqID: printReqID,
+		qpsAllow:   createQpsAlloer(l.QPS),
 	}
 }
 
@@ -274,13 +279,23 @@ func (r roundTripper) RoundTrip(req *http.Request) (resp *http.Response, err err
 		// See Go standard library issue https://golang.org/issue/30597
 		tripper = http.RoundTripper(http.DefaultTransport)
 	}
+
+	if !r.qpsAllow.Allow() {
+		return tripper.RoundTrip(req)
+	}
+
+	if hide := req.Context().Value(contextHide{}); hide != nil {
+		return tripper.RoundTrip(req)
+	}
+
 	l := r.logger
 	p := newPrinter(l, r.printReqID)
 	defer p.flush()
-	if hide := req.Context().Value(contextHide{}); hide != nil || p.checkFilter(req) {
+
+	if p.checkFilter(req) {
 		return tripper.RoundTrip(req)
 	}
-	var tlsClientConfig *tls.Config
+
 	if l.Time {
 		defer p.printTimeRequest()()
 	}
@@ -296,6 +311,8 @@ func (r roundTripper) RoundTrip(req *http.Request) (resp *http.Response, err err
 			p.printf("* Using proxy: %s\n", p.format(color.FgBlue, proxyUrl.String()))
 		}
 	}
+
+	var tlsClientConfig *tls.Config
 	if ok && transport.TLSClientConfig != nil {
 		tlsClientConfig = transport.TLSClientConfig
 		if tlsClientConfig.InsecureSkipVerify {
@@ -325,12 +342,46 @@ func (r roundTripper) RoundTrip(req *http.Request) (resp *http.Response, err err
 	return tripper.RoundTrip(req)
 }
 
+type qpsAllow struct {
+	tick *time.Ticker
+}
+
+func (q *qpsAllow) Close() error {
+	if q.tick != nil {
+		q.tick.Stop()
+	}
+	return nil
+}
+func (q *qpsAllow) Allow() bool {
+	if q.tick == nil {
+		return true
+	}
+
+	select {
+	case _, ok := <-q.tick.C:
+		return ok
+	default:
+		return false
+	}
+}
+
+func createQpsAlloer(qps float64) *qpsAllow {
+	if qps > 0 {
+		return &qpsAllow{
+			tick: time.NewTicker(time.Duration(1e6/(qps)) * time.Microsecond),
+		}
+	}
+
+	return &qpsAllow{}
+}
+
 // Middleware for logging incoming requests to a HTTP server.
 func (l *Logger) Middleware(next http.Handler, printReqID bool) http.Handler {
 	return httpHandler{
 		logger:     l,
 		next:       next,
 		printReqID: printReqID,
+		qpsAllow:   createQpsAlloer(l.QPS),
 	}
 }
 
@@ -338,14 +389,26 @@ type httpHandler struct {
 	logger     *Logger
 	next       http.Handler
 	printReqID bool
+
+	qpsAllow *qpsAllow
 }
 
 // ServeHTTP is a middleware for logging incoming requests to a HTTP server.
 func (h httpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if !h.qpsAllow.Allow() {
+		h.next.ServeHTTP(w, req)
+		return
+	}
+	if hide := req.Context().Value(contextHide{}); hide != nil {
+		h.next.ServeHTTP(w, req)
+		return
+	}
+
 	l := h.logger
 	p := newPrinter(l, h.printReqID)
 	defer p.flush()
-	if hide := req.Context().Value(contextHide{}); hide != nil || p.checkFilter(req) {
+
+	if p.checkFilter(req) {
 		h.next.ServeHTTP(w, req)
 		return
 	}
